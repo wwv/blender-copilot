@@ -1,20 +1,10 @@
-from pathlib import Path
-import importlib.util
+import sys, os
+sys._called_from_test = True
 
-# Resolve repository root and load modules by path, like test_context.py
-_HERE = Path(__file__).resolve().parent
-ROOT = _HERE.parent
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-def load(name: str, path: Path):
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader, f"cannot load {path}"
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-# Load the _signal module from the package
-_signal_path = ROOT / "blender_copilot" / "_signal.py"
-Signal = load("_signal", _signal_path).Signal
+from blender_copilot._signal import Signal
 
 def check(label: str, condition: bool, extra: str = "") -> None:
     global CHECKS
@@ -37,18 +27,18 @@ def test_setitimer_sets_timer(monkeypatch):
     Signal.signal(Signal.SIGALRM, handler)
 
     # Call setitimer with seconds=10 and interval=3
-    ret = Signal.setitimer(Signal.ITIMER_REAL, 10, 3)
-    check("setitimer returns the tuple", ret == (10, 3))
+    ret = Signal.setitimer(Signal.ITIMER_REAL, 3, 2)
+    check("setitimer returns the tuple", ret == (3, 2))
     # Immediately check that getitimer reports the correct remaining time and interval
     rem, inter = Signal.getitimer(Signal.ITIMER_REAL)
     # Allow a small drift due to execution time
-    check("getitimer reports remaining time", abs(rem - 10) < 0.5)
-    check("getitimer reports interval", inter == 3)
+    check("getitimer reports remaining time", abs(rem - 3) < 0.5)
+    check("getitimer reports interval", inter == 2)
     # Sleep briefly – less than the timer period – so the handler should not fire yet
     time.sleep(0.1)
     check("handler should wait for delay", called == [])
-    # Подождём достаточное время, чтобы таймер сработал дважды (10s и 13s)
-    time.sleep(15)
+    # Подождём достаточное время, чтобы таймер сработал дважды (3s и 2s)
+    time.sleep(6)
     # Ожидаем ровно два вызова обработчика
     check("handler should fire twice after delay", len(called) == 2)
     # Останавливаем таймер, чтобы не оставить живого потока

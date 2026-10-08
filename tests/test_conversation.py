@@ -16,57 +16,18 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
-import signal
-import sys
+import os, sys
 import time
-from pathlib import Path
 from types import SimpleNamespace
+sys._called_from_test = True
 
-_HERE = Path(__file__).resolve().parent
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-# `budget.py` FIRST, and registered under the name `execution._sibling` and
-# `conversation._sibling` resolve to. `run_python` catches `budget.Exceeded` by
-# class identity, so a second copy of the module - which is what loading by path
-# gives you for free - would be a second, unrelated exception class and the catch
-# would silently miss. One module object, deliberately, before anything that
-# imports it is loaded.
-_budget_spec = importlib.util.spec_from_file_location(
-    "bc_budget", _HERE.parent / "blender_copilot" / "budget.py"
-)
-assert _budget_spec and _budget_spec.loader
-budget = importlib.util.module_from_spec(_budget_spec)
-sys.modules["bc_budget"] = budget
-_budget_spec.loader.exec_module(budget)
-
-_spec = importlib.util.spec_from_file_location(
-    "conversation", _HERE.parent / "blender_copilot" / "conversation.py"
-)
-assert _spec and _spec.loader
-conversation = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(conversation)
-
-_exec_spec = importlib.util.spec_from_file_location(
-    "execution", _HERE.parent / "blender_copilot" / "execution.py"
-)
-assert _exec_spec and _exec_spec.loader
-execution = importlib.util.module_from_spec(_exec_spec)
-_exec_spec.loader.exec_module(execution)
-
-_undo_spec = importlib.util.spec_from_file_location(
-    "undo", _HERE.parent / "blender_copilot" / "undo.py"
-)
-assert _undo_spec and _undo_spec.loader
-undo = importlib.util.module_from_spec(_undo_spec)
-_undo_spec.loader.exec_module(undo)
-
-_context_spec = importlib.util.spec_from_file_location(
-    "context", _HERE.parent / "blender_copilot" / "context.py"
-)
-assert _context_spec and _context_spec.loader
-context = importlib.util.module_from_spec(_context_spec)
-_context_spec.loader.exec_module(context)
-
+import blender_copilot.conversation as conversation
+import blender_copilot.execution as execution
+import blender_copilot.budget as budget
+from blender_copilot._signal import Signal as signal
 
 def check(label: str, condition: bool) -> None:
     assert condition, f"FAILED: {label}"

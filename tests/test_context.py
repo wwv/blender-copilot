@@ -24,28 +24,18 @@ Three kinds of check, and the reason each exists:
 
 from __future__ import annotations
 
-import importlib.util
+import sys, os
 import json
 import random
 import re
 from pathlib import Path
 
-_HERE = Path(__file__).resolve().parent
-ROOT = _HERE.parent
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-
-def load(name: str, path: Path):
-    """Import a bpy-free module by path: the package itself imports `bpy`."""
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader, f"cannot load {path}"
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-context = load("context", ROOT / "blender_copilot" / "context.py")
-transport = load("transport", ROOT / "blender_copilot" / "transport.py")
-store_module = load("store", ROOT / "blender_copilot" / "store.py")
+import blender_copilot.context as context
+import blender_copilot.transport as transport
+import blender_copilot.store as store
 
 CHECKS = 0
 

@@ -1217,7 +1217,6 @@ class Conversation:
             self.set_transport_error(problem)
             self.fail_turn("worker_unavailable", problem)
             return True
-        self.send(..., tools=SCHEMAS)
         self._rounds += 1
         self.phase = PHASE_REQUEST
         self.busy_kind = BUSY_STREAM

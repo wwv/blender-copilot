@@ -60,59 +60,22 @@ from __future__ import annotations
 
 import contextlib
 import difflib
-import importlib.util
 import io
 import json
 import sys
 import traceback
 import types
-from pathlib import Path
+import os
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+from blender_copilot import guides
+from blender_copilot import budget
+
 
 # The name Blender's own `code.interact` machinery uses for model code, so a
 # traceback frame can be identified by filename.
 FILENAME = "<model>"
-
-
-def _sibling(name: str):
-    """Import a bpy-free sibling module, from a package or from this file's folder.
-
-    The CPython suite and `tools/loop_wire_probe.py` both load *this* module by
-    path, with no package around it, so a plain `from . import guides` is not
-    always available. Try the package first (the addon's own case, and the GUI
-    probes'), then the file next to this one.
-
-    The package branch is a relative import of `name`, not of `guides`: the file
-    is imported twice, by two different module names, because `budget.LIMITS` has
-    to be the *same* object in `execution` and in `conversation` (the call window
-    and the turn's clock are two views of one ledger) - and when this module is
-    loaded by path the two halves each get their own copy, which is why the
-    identity is asserted in `tools/panel_draw_smoke.py` rather than assumed.
-
-    The `bc_` branch is what makes that true under the CPython suite, which has no
-    package: a loader that has already read `budget.py` by path registers it as
-    `bc_budget`, and both halves then resolve to that one object instead of
-    loading a third. The two copies are otherwise indistinguishable, which is
-    exactly how an `isinstance` against the wrong copy would go unnoticed.
-    """
-    try:
-        return importlib.import_module(f".{name}", __package__)
-    except Exception:  # noqa: BLE001 - any failure here means "load it by path"
-        cached = sys.modules.get(f"bc_{name}")
-        if cached is not None:
-            return cached
-        path = Path(__file__).with_name(f"{name}.py")
-        spec = importlib.util.spec_from_file_location(f"bc_{name}", path)
-        if spec is None or spec.loader is None:  # pragma: no cover - defensive
-            raise ImportError(f"cannot load {name} from {path}")
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[f"bc_{name}"] = module
-        spec.loader.exec_module(module)
-        return module
-
-
-guides = _sibling("guides")
-budget = _sibling("budget")
-
 RUN_PYTHON = "run_blender_python"
 SCENE_INFO = "get_scene_info"
 RNA_INFO = "get_rna_info"

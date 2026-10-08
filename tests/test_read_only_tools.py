@@ -20,27 +20,18 @@ proves that the real build is reachable through the same interface.
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import sys
+import sys, os
 from pathlib import Path
 from types import SimpleNamespace
 
-_HERE = Path(__file__).resolve().parent
-ROOT = _HERE.parent
+sys._called_from_test = True
 
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-def load(name: str, path: Path):
-    """Import a bpy-free module by path: the package itself imports `bpy`."""
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader, f"cannot load {path}"
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-execution = load("bc_execution_ro", ROOT / "blender_copilot" / "execution.py")
-guides = load("bc_guides_ro", ROOT / "blender_copilot" / "guides.py")
+from blender_copilot import guides
+from blender_copilot import execution;
 
 FAILURES: list[str] = []
 

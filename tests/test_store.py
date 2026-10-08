@@ -16,20 +16,18 @@ the assertions instead of being masked by a stale fixture.
 
 from __future__ import annotations
 
-import importlib.util
 import json
-import os
+import os, sys
 import shutil
 import tempfile
 from pathlib import Path
 
-_HERE = Path(__file__).resolve().parent
-_spec = importlib.util.spec_from_file_location(
-    "store", _HERE.parent / "blender_copilot" / "store.py"
-)
-assert _spec and _spec.loader
-store = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(store)
+sys._called_from_test = True
+
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+import blender_copilot.store as store
 
 
 def check(label: str, condition: bool) -> None:
