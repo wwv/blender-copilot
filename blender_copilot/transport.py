@@ -279,6 +279,8 @@ def config(prefs=None) -> Config:
     # A trailing slash would produce `https://host//chat/completions`, which some
     # gateways 404 rather than normalise.
     base_url = base_url.rstrip("/")
+    if _is_local_base(base_url) and not base_url.endswith('/v1'):
+        base_url += '/v1'
 
     if pref_key:
         api_key, key_source = pref_key, FROM_PREFS
@@ -294,8 +296,12 @@ def config(prefs=None) -> Config:
     else:
         model, model_source = DEFAULT_MODEL, FROM_DEFAULT
 
+    # Build the list of missing items that will be reported in the panel.
+    # If we are talking to a local LM Studio instance, an API key is optional
+    # (the server does not require authentication).  In that case we do *not*
+    # add a "missing key" message even if `api_key` is empty.
     missing = []
-    if not api_key:
+    if not api_key and not _is_local_base(base_url):
         missing.append(("The API key", KEY_ENV))
     if not base_url:
         missing.append(("The base URL", URL_ENV))
@@ -308,6 +314,23 @@ def config(prefs=None) -> Config:
         url_source,
         model_source,
     )
+
+
+# --- Helper for detecting local LM Studio endpoints
+def _is_local_base(url: str) -> bool:
+    """Return True if *url* points to a local host.
+
+    The LM Studio endpoint is typically ``http://localhost:1234/...`` or
+    ``http://127.0.0.1:...`` – any URL whose netloc resolves to ``localhost``
+    or the loopback IP is considered local.  We do not attempt DNS resolution;
+    only a simple string check is needed because the user supplies the value.
+    """
+    from urllib.parse import urlparse
+    try:
+        netloc = urlparse(url).netloc.split(":", 1)[0]
+    except Exception:  # pragma: no cover – defensive, but unlikely
+        return False
+    return netloc in ("localhost", "127.0.0-1")
 
 
 class Worker:
