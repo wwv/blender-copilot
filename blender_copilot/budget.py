@@ -52,7 +52,7 @@ calls have not started yet.
 
 from __future__ import annotations
 
-import signal
+from ._signal import Signal as signal
 import threading
 import time
 
@@ -517,3 +517,4 @@ def stopped(verdict: dict) -> bool:
     return bool(
         verdict.get("interrupted") or verdict.get("interrupts") or verdict.get("disarmed")
     )
+
