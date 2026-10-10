@@ -33,9 +33,12 @@ from pathlib import Path
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
+_HERE = Path(__file__).resolve().parent
+ROOT = _HERE.parent
+
 import blender_copilot.context as context
 import blender_copilot.transport as transport
-import blender_copilot.store as store
+import blender_copilot.store as store_module
 
 CHECKS = 0
 
