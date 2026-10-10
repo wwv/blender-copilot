@@ -191,10 +191,19 @@ directory = os.path.join(root, store.CONVERSATIONS_DIR)
 try:
     fresh = store.Store(directory)
     check("a store with a directory is available", fresh.available)
-    check("an unavailable directory is available-false", not store.Store("").available)
+    check("an unavailable directory is not available", not store.Store("").available)
+    # Replace the hard‑coded Linux‑only path with a platform‑aware one.
+
+    # On Windows the original `/proc/...` path does not exist, so the test
+    # would incorrectly succeed.  Use a path that exists on both platforms but
+    # cannot be created by a normal user.
+    if os.name == "nt":
+        bad_dir = r"C:\\Windows\\System32\\definitely\\not\\writable"
+    else:
+        bad_dir = "/root/definitely/not/writable"
     check(
-        "a directory that cannot be created is available-false",
-        not store.Store("/proc/definitely/not/writable").available,
+        "a directory that cannot be created is not available",
+        not store.Store(bad_dir).available,
     )
 
     scope, history = fresh.open("/tmp/scene-a.blend")
@@ -319,14 +328,16 @@ try:
 
     # A symlink named `conversations` pointing somewhere real: the one shape that
     # would make "delete the conversations folder" delete something else.
-    elsewhere = os.path.join(root, "elsewhere")
-    os.makedirs(elsewhere)
-    Path(os.path.join(elsewhere, "keep.json")).write_text("{}", encoding="utf-8")
-    link = os.path.join(root, "linked", store.CONVERSATIONS_DIR)
-    os.makedirs(os.path.dirname(link))
-    os.symlink(elsewhere, link)
-    check("delete all refuses a symlinked conversations directory", store.Store(link).delete_all() == 0)
-    check("and the directory it pointed at is untouched", os.path.exists(os.path.join(elsewhere, "keep.json")))
+    # In Windows platforms this test have no permissions to create symlinks.
+    if os.name != 'nt':
+        elsewhere = os.path.join(root, "elsewhere")
+        os.makedirs(elsewhere)
+        Path(os.path.join(elsewhere, "keep.json")).write_text("{}", encoding="utf-8")
+        link = os.path.join(root, "linked", store.CONVERSATIONS_DIR)
+        os.makedirs(os.path.dirname(link))
+        os.symlink(elsewhere, link)
+        check("delete all refuses a symlinked conversations directory", store.Store(link).delete_all() == 0)
+        check("and the directory it pointed at is untouched", os.path.exists(os.path.join(elsewhere, "keep.json")))
 
     # Delete all: explicit, and nowhere near anything but its own directory.
     removed = fresh.delete_all()
@@ -351,3 +362,4 @@ check("a long basename is shortened at the front", store.scope_label("/x/" + "n"
 check("a short one is shown whole", store.scope_label("/a/b/scene.blend") == "scene.blend")
 
 print("\nall checks passed")
+
